@@ -1,8 +1,8 @@
 'use client'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { extractTakenAt, resolveTakenAt } from '@/lib/exif'
+import { extractTakenAt, fallbackTakenAt, resolveTakenAt } from '@/lib/exif'
 import { compressImage } from '@/lib/image'
 import { addWorkout } from '@/lib/workouts'
 
@@ -11,7 +11,7 @@ function toLocalInputValue(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-export default function UploadPage() {
+function UploadForm() {
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState('')
   const [takenAt, setTakenAt] = useState('')
@@ -19,6 +19,7 @@ export default function UploadPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const dateParam = useSearchParams().get('date')
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]
@@ -29,7 +30,7 @@ export default function UploadPage() {
     // 중요: 압축 전에 EXIF를 읽는다 (압축하면 EXIF가 사라짐)
     const exifDate = await extractTakenAt(f)
     setExifFound(exifDate !== null)
-    setTakenAt(toLocalInputValue(resolveTakenAt(exifDate, new Date())))
+    setTakenAt(toLocalInputValue(resolveTakenAt(exifDate, fallbackTakenAt(dateParam, new Date()))))
   }
 
   async function handleSave() {
@@ -49,7 +50,9 @@ export default function UploadPage() {
   return (
     <main className="mx-auto max-w-md space-y-4 p-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">운동 기록 올리기</h1>
+        <h1 className="text-xl font-bold">
+          운동 기록 올리기{dateParam && <span className="ml-2 text-sm font-normal text-gray-500">{dateParam}</span>}
+        </h1>
         <Link href="/" className="text-sm text-gray-500">
           닫기
         </Link>
@@ -93,5 +96,13 @@ export default function UploadPage() {
         {saving ? '저장 중…' : '저장'}
       </button>
     </main>
+  )
+}
+
+export default function UploadPage() {
+  return (
+    <Suspense fallback={null}>
+      <UploadForm />
+    </Suspense>
   )
 }

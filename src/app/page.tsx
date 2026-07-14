@@ -135,5 +135,11 @@ function DayCell({ day, workouts, inMonth }: { day: Date; workouts: Workout[]; i
       )}
     </div>
   )
-  return workouts.length > 0 ? <Link href={`/day/${toDateKey(day)}`}>{cell}</Link> : cell
+  // 기록 있는 날 → 상세보기, 없는 날 → 그 날짜로 기록 등록
+  const key = toDateKey(day)
+  return workouts.length > 0 ? (
+    <Link href={`/day/${key}`}>{cell}</Link>
+  ) : (
+    <Link href={`/upload?date=${key}`}>{cell}</Link>
+  )
 }
