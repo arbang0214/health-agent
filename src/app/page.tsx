@@ -19,11 +19,22 @@ export default function CalendarPage() {
   }, [])
 
   useEffect(() => {
+    let stale = false
     const from = startOfWeek(startOfMonth(anchor))
     const to = endOfWeek(endOfMonth(anchor))
     listWorkouts(from, to)
-      .then((ws) => setByDay(groupByDateKey(ws)))
-      .catch((err) => setError(err instanceof Error ? err.message : '조회 실패'))
+      .then((ws) => {
+        if (stale) return
+        setByDay(groupByDateKey(ws))
+        setError('')
+      })
+      .catch((err) => {
+        if (stale) return
+        setError(err instanceof Error ? err.message : '조회 실패')
+      })
+    return () => {
+      stale = true
+    }
   }, [anchor])
 
   function move(dir: 1 | -1) {

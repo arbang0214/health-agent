@@ -29,8 +29,28 @@ export default function DayPage({ params }: { params: Promise<{ date: string }> 
   }, [date])
 
   useEffect(() => {
-    void load()
-  }, [load])
+    let stale = false
+    ;(async () => {
+      setLoading(true)
+      setError('')
+      try {
+        const from = new Date(`${date}T00:00:00`)
+        const to = new Date(`${date}T23:59:59.999`)
+        const workouts = await listWorkouts(from, to)
+        const urls = await Promise.all(workouts.map((w) => getPhotoUrl(w.photo_path)))
+        if (stale) return
+        setEntries(workouts.map((workout, i) => ({ workout, url: urls[i] })))
+      } catch (err) {
+        if (stale) return
+        setError(err instanceof Error ? err.message : '조회에 실패했습니다')
+      } finally {
+        if (!stale) setLoading(false)
+      }
+    })()
+    return () => {
+      stale = true
+    }
+  }, [date])
 
   async function handleDelete(w: Workout) {
     if (!window.confirm('이 기록을 삭제할까요?')) return
