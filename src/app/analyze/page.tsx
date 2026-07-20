@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { recognizeWorkout } from '@/lib/ocr'
@@ -21,36 +21,41 @@ export default function AnalyzePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const started = useRef(false)
   const router = useRouter()
 
   useEffect(() => {
-    if (started.current) return // StrictMode 재실행 방지
-    started.current = true
+    let cancelled = false
     ;(async () => {
       try {
         const workouts = await listUnanalyzed()
-        const urls = await Promise.all(workouts.map((w) => getPhotoUrl(w.photo_path)))
+        if (cancelled) return
+        const urls = await Promise.all(workouts.map((w) => getPhotoUrl(w.photo_path).catch(() => '')))
+        if (cancelled) return
         const initial: Item[] = workouts.map((workout, i) => ({
           workout,
           url: urls[i],
-          status: 'pending',
+          status: urls[i] === '' ? 'failed' : 'pending',
           durationMin: '',
           distanceKm: '',
           calories: '',
         }))
+        if (cancelled) return
         setItems(initial)
         setLoading(false)
 
         // 순차 OCR (WASM 워커 1개 재사용)
         for (let i = 0; i < initial.length; i++) {
+          if (initial[i].status === 'failed') continue // 서명 URL 발급 실패 → 직접 입력 폴백
+          if (cancelled) break
           setItems((prev) => prev.map((it, j) => (j === i ? { ...it, status: 'running' } : it)))
           try {
             const blob = await fetch(initial[i].url).then((r) => {
               if (!r.ok) throw new Error(`사진 다운로드 실패 (${r.status})`)
               return r.blob()
             })
+            if (cancelled) break
             const stats = await recognizeWorkout(blob)
+            if (cancelled) break
             setItems((prev) =>
               prev.map((it, j) =>
                 j === i
@@ -65,14 +70,19 @@ export default function AnalyzePage() {
               )
             )
           } catch {
+            if (cancelled) break
             setItems((prev) => prev.map((it, j) => (j === i ? { ...it, status: 'failed' } : it)))
           }
         }
       } catch (err) {
+        if (cancelled) return
         setError(err instanceof Error ? err.message : '조회에 실패했습니다')
         setLoading(false)
       }
     })()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const analyzing = items.some((it) => it.status === 'pending' || it.status === 'running')
@@ -88,19 +98,25 @@ export default function AnalyzePage() {
       const n = Number(s)
       return s.trim() === '' || !Number.isFinite(n) ? null : n
     }
-    try {
-      for (const it of items) {
+    const failed: Item[] = []
+    for (const it of items) {
+      try {
         await updateWorkoutStats(it.workout.id, {
           duration_min: toNum(it.durationMin),
           distance_km: toNum(it.distanceKm),
           calories: toNum(it.calories),
         })
+      } catch {
+        failed.push(it)
       }
-      router.push('/')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '저장에 실패했습니다')
-      setSaving(false)
     }
+    if (failed.length === 0) {
+      router.push('/')
+      return
+    }
+    setItems(failed)
+    setError('일부 저장에 실패했습니다 — 남은 건만 다시 시도해주세요')
+    setSaving(false)
   }
 
   return (
@@ -122,8 +138,12 @@ export default function AnalyzePage() {
         {items.map((it, i) => (
           <div key={it.workout.id} className="space-y-2 rounded-2xl bg-white p-3 shadow-sm">
             <div className="flex items-center gap-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={it.url} alt="운동 기록 사진" className="h-14 w-14 rounded-xl object-cover" />
+              {it.url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={it.url} alt="운동 기록 사진" className="h-14 w-14 rounded-xl object-cover" />
+              ) : (
+                <div className="h-14 w-14 rounded-xl bg-gray-100" />
+              )}
               <div className="flex-1 text-sm">
                 <div className="font-bold text-gray-700">
                   {new Date(it.workout.taken_at).toLocaleDateString('ko-KR', {
@@ -147,6 +167,7 @@ export default function AnalyzePage() {
                   placeholder="—"
                   value={it.durationMin}
                   onChange={(e) => updateField(i, 'durationMin', e.target.value)}
+                  disabled={it.status === 'pending' || it.status === 'running'}
                   className="w-full rounded-xl border border-gray-200 p-2 text-center text-sm"
                 />
                 <span className="block text-center text-[10px] text-gray-400">분</span>
@@ -159,6 +180,7 @@ export default function AnalyzePage() {
                   placeholder="—"
                   value={it.distanceKm}
                   onChange={(e) => updateField(i, 'distanceKm', e.target.value)}
+                  disabled={it.status === 'pending' || it.status === 'running'}
                   className="w-full rounded-xl border border-gray-200 p-2 text-center text-sm"
                 />
                 <span className="block text-center text-[10px] text-gray-400">km</span>
@@ -170,6 +192,7 @@ export default function AnalyzePage() {
                   placeholder="—"
                   value={it.calories}
                   onChange={(e) => updateField(i, 'calories', e.target.value)}
+                  disabled={it.status === 'pending' || it.status === 'running'}
                   className="w-full rounded-xl border border-gray-200 p-2 text-center text-sm"
                 />
                 <span className="block text-center text-[10px] text-gray-400">kcal</span>
