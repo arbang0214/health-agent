@@ -11,12 +11,7 @@ export type WorkoutStats = {
 
 export async function addWorkout(photo: Blob, takenAt: Date, stats?: WorkoutStats): Promise<void> {
   const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) throw new Error('로그인이 필요합니다')
-
-  const path = `${user.id}/${crypto.randomUUID()}.jpg`
+  const path = `public/${crypto.randomUUID()}.jpg`
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
     .upload(path, photo, { contentType: 'image/jpeg' })
