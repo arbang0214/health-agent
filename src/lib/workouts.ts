@@ -3,7 +3,13 @@ import type { Workout } from '@/lib/types'
 
 const BUCKET = 'photos'
 
-export async function addWorkout(photo: Blob, takenAt: Date): Promise<void> {
+export type WorkoutStats = {
+  duration_min: number | null
+  distance_km: number | null
+  calories: number | null
+}
+
+export async function addWorkout(photo: Blob, takenAt: Date, stats?: WorkoutStats): Promise<void> {
   const supabase = createClient()
   const {
     data: { user },
@@ -16,9 +22,10 @@ export async function addWorkout(photo: Blob, takenAt: Date): Promise<void> {
     .upload(path, photo, { contentType: 'image/jpeg' })
   if (uploadError) throw new Error(`사진 업로드 실패: ${uploadError.message}`)
 
-  const { error: insertError } = await supabase
-    .from('workouts')
-    .insert({ taken_at: takenAt.toISOString(), photo_path: path })
+  const row: Record<string, unknown> = { taken_at: takenAt.toISOString(), photo_path: path }
+  if (stats) Object.assign(row, stats, { analyzed_at: new Date().toISOString() })
+
+  const { error: insertError } = await supabase.from('workouts').insert(row)
   if (insertError) {
     await supabase.storage.from(BUCKET).remove([path])
     throw new Error(`기록 저장 실패: ${insertError.message}`)
@@ -42,6 +49,26 @@ export async function deleteWorkout(w: Workout): Promise<void> {
   const { error } = await supabase.from('workouts').delete().eq('id', w.id)
   if (error) throw new Error(`삭제 실패: ${error.message}`)
   await supabase.storage.from(BUCKET).remove([w.photo_path])
+}
+
+export async function updateWorkoutStats(id: string, stats: WorkoutStats): Promise<void> {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('workouts')
+    .update({ ...stats, analyzed_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw new Error(`기록 수정 실패: ${error.message}`)
+}
+
+export async function listUnanalyzed(): Promise<Workout[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('workouts')
+    .select('*')
+    .is('analyzed_at', null)
+    .order('taken_at', { ascending: true })
+  if (error) throw new Error(`기록 조회 실패: ${error.message}`)
+  return (data ?? []) as Workout[]
 }
 
 export async function getPhotoUrl(path: string): Promise<string> {
