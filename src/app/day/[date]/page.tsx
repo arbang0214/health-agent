@@ -116,10 +116,17 @@ function WorkoutCard({
   onError: (msg: string) => void
 }) {
   const [editing, setEditing] = useState(false)
-  const [durationMin, setDurationMin] = useState(workout.duration_min !== null ? String(workout.duration_min) : '')
-  const [distanceKm, setDistanceKm] = useState(workout.distance_km !== null ? String(workout.distance_km) : '')
-  const [calories, setCalories] = useState(workout.calories !== null ? String(workout.calories) : '')
+  const [durationMin, setDurationMin] = useState('')
+  const [distanceKm, setDistanceKm] = useState('')
+  const [calories, setCalories] = useState('')
   const [saving, setSaving] = useState(false)
+
+  function startEditing() {
+    setDurationMin(workout.duration_min !== null ? String(workout.duration_min) : '')
+    setDistanceKm(workout.distance_km !== null ? String(workout.distance_km) : '')
+    setCalories(workout.calories !== null ? String(workout.calories) : '')
+    setEditing(true)
+  }
 
   async function handleSave() {
     setSaving(true)
@@ -215,7 +222,7 @@ function WorkoutCard({
       ) : (
         <div className="flex items-center justify-between px-1">
           <span className="text-sm font-bold text-emerald-700">{statsLabel(workout)}</span>
-          <button onClick={() => setEditing(true)} className="text-sm text-gray-400">
+          <button onClick={startEditing} className="text-sm text-gray-400">
             ✎ 수정
           </button>
         </div>
