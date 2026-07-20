@@ -30,21 +30,22 @@ function UploadForm() {
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]
     if (!f) return
+    const run = ++ocrRun.current
     setError('')
     setFile(f)
     setPreview(URL.createObjectURL(f))
-    // 중요: 압축 전에 EXIF를 읽는다 (압축하면 EXIF가 사라짐)
-    const exifDate = await extractTakenAt(f)
-    setExifFound(exifDate !== null)
-    setTakenAt(toLocalInputValue(resolveTakenAt(exifDate, fallbackTakenAt(dateParam, new Date()))))
-
-    // OCR 자동 인식 (실패해도 수동 입력으로 진행)
-    const run = ++ocrRun.current
     setDurationMin('')
     setDistanceKm('')
     setCalories('')
     setOcrRunning(true)
     try {
+      // 중요: 압축 전에 EXIF를 읽는다 (압축하면 EXIF가 사라짐)
+      const exifDate = await extractTakenAt(f)
+      if (run !== ocrRun.current) return // 그 사이 다른 사진 선택됨
+      setExifFound(exifDate !== null)
+      setTakenAt(toLocalInputValue(resolveTakenAt(exifDate, fallbackTakenAt(dateParam, new Date()))))
+
+      // OCR 자동 인식 (실패해도 수동 입력으로 진행)
       const stats = await recognizeWorkout(f)
       if (run !== ocrRun.current) return // 그 사이 다른 사진 선택됨
       if (stats.duration_min !== null) setDurationMin(String(stats.duration_min))
@@ -61,7 +62,10 @@ function UploadForm() {
     if (!file || !takenAt) return
     setSaving(true)
     setError('')
-    const toNum = (s: string) => (s.trim() === '' ? null : Number(s))
+    const toNum = (s: string) => {
+      const n = Number(s)
+      return s.trim() === '' || !Number.isFinite(n) ? null : n
+    }
     try {
       const compressed = await compressImage(file)
       await addWorkout(compressed, new Date(takenAt), {
@@ -169,7 +173,7 @@ function UploadForm() {
 
         <button
           onClick={handleSave}
-          disabled={!file || !takenAt || saving}
+          disabled={!file || !takenAt || saving || ocrRunning}
           className="w-full rounded-full bg-emerald-500 p-3 font-bold text-white shadow-lg shadow-emerald-500/40 disabled:opacity-40"
         >
           {saving ? '저장 중…' : '저장'}
