@@ -2,8 +2,13 @@
  * 브라우저에서 이미지를 리사이즈·JPEG 압축한다.
  * 주의: canvas를 거치며 EXIF가 삭제되므로, EXIF 추출은 반드시 이 함수 호출 전에 할 것.
  */
-export async function compressImage(file: File, maxDim = 1600, quality = 0.8): Promise<Blob> {
-  const bitmap = await createImageBitmap(file)
+export async function compressImage(file: Blob, maxDim = 1600, quality = 0.8): Promise<Blob> {
+  let bitmap: ImageBitmap
+  try {
+    bitmap = await createImageBitmap(file)
+  } catch {
+    throw new Error('사진을 읽을 수 없는 형식이에요. 다른 사진으로 올려주세요')
+  }
   const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height))
   const width = Math.round(bitmap.width * scale)
   const height = Math.round(bitmap.height * scale)

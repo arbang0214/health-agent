@@ -3,6 +3,7 @@ import { Suspense, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { extractTakenAt, fallbackTakenAt, resolveTakenAt } from '@/lib/exif'
+import { ensureDisplayable } from '@/lib/heic'
 import { compressImage } from '@/lib/image'
 import { recognizeWorkout } from '@/lib/ocr'
 import { addWorkout } from '@/lib/workouts'
@@ -13,7 +14,7 @@ function toLocalInputValue(d: Date): string {
 }
 
 function UploadForm() {
-  const [file, setFile] = useState<File | null>(null)
+  const [file, setFile] = useState<Blob | null>(null)
   const [preview, setPreview] = useState('')
   const [takenAt, setTakenAt] = useState('')
   const [exifFound, setExifFound] = useState(true)
@@ -39,14 +40,31 @@ function UploadForm() {
     setCalories('')
     setOcrRunning(true)
     try {
-      // 중요: 압축 전에 EXIF를 읽는다 (압축하면 EXIF가 사라짐)
+      // 중요: 압축·변환 전에 EXIF를 읽는다 (둘 다 EXIF가 사라짐)
       const exifDate = await extractTakenAt(f)
       if (run !== ocrRun.current) return // 그 사이 다른 사진 선택됨
       setExifFound(exifDate !== null)
       setTakenAt(toLocalInputValue(resolveTakenAt(exifDate, fallbackTakenAt(dateParam, new Date()))))
 
+      // HEIC 등 브라우저가 못 읽는 형식은 JPEG로 변환 (실패하면 안내하고 중단)
+      let usable: Blob
+      try {
+        usable = await ensureDisplayable(f)
+      } catch (err) {
+        if (run !== ocrRun.current) return
+        setFile(null)
+        setPreview('')
+        setError(err instanceof Error ? err.message : '사진을 읽을 수 없어요')
+        return
+      }
+      if (run !== ocrRun.current) return
+      if (usable !== f) {
+        setFile(usable)
+        setPreview(URL.createObjectURL(usable))
+      }
+
       // OCR 자동 인식 (실패해도 수동 입력으로 진행)
-      const stats = await recognizeWorkout(f)
+      const stats = await recognizeWorkout(usable)
       if (run !== ocrRun.current) return // 그 사이 다른 사진 선택됨
       if (stats.duration_min !== null) setDurationMin(String(stats.duration_min))
       if (stats.distance_km !== null) setDistanceKm(String(stats.distance_km))
