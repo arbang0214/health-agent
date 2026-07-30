@@ -57,13 +57,13 @@ Next.js route handler (Vercel 서버 실행). 흐름:
 1. `coach_reports`에서 오늘 생성 수 확인 → 5회 이상이면 **429** ("오늘 분석 횟수를 다 썼어요, 내일 다시!")
 2. 최근 8주 `workouts`(스탯 + journal)와 **직전 리포트 1건**을 모아 프롬프트 구성
 3. Claude API 호출
-   - 모델: `claude-opus-5`, SDK: `@anthropic-ai/sdk`
+   - 모델: `claude-sonnet-5` (사용자 결정: 비용 대비 충분), effort medium, SDK: `@anthropic-ai/sdk`
    - API 키: Vercel 환경변수 `ANTHROPIC_API_KEY` (로컬은 `.env.local`, 커밋 안 함)
-   - 시스템 프롬프트: 한국어 러닝 코치. ① 운동 효과 분석 ② 다음 목표치 ③ 구체적 운동 방법(인터벌 구성 등)을 마크다운으로
-   - 안전 분류기 거부 시 자동 대체 모델 재실행: `fallbacks: "default"` (beta `server-side-fallback-2026-07-01`)
+   - 시스템 프롬프트: 한국어 러닝 코치. ① 운동 효과 분석 ② 다음 목표치 ③ 구체적 운동 방법(인터벌 구성 등)을 일반 텍스트(이모지 섹션 제목)로
+   - 거부(`stop_reason: refusal`)·잘림(`max_tokens`)은 실패 처리(502), 저장 안 함
 4. 결과를 `coach_reports`에 insert 후 반환
 
-**비용**: 회당 약 3~4천 토큰 → 약 50~80원/회. 일일 5회 한도로 하루 최대 ~400원 캡.
+**비용**: 회당 약 3~4천 토큰 → 약 20~40원/회. 일일 5회 한도로 하루 최대 ~200원 캡.
 
 **타임아웃**: 분석 호출 10~30초 가능 → 라우트에 `export const maxDuration = 60` 설정.
 

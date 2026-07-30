@@ -66,13 +66,11 @@ async function handlePost() {
       return data as CoachReport
     },
     async generateAnalysis(system, user) {
-      const response = await anthropic.beta.messages.create({
-        model: 'claude-opus-5',
+      const response = await anthropic.messages.create({
+        model: 'claude-sonnet-5',
         max_tokens: 16000,
         system,
-        betas: ['server-side-fallback-2026-07-01'],
-        fallbacks: 'default', // 분류기 거부 시 자동 대체 모델 재실행
-        output_config: { effort: 'medium' }, // opus-5는 thinking 기본 ON(effort high) — 60초 타임아웃/비용 캡 보호
+        output_config: { effort: 'medium' }, // sonnet-5는 adaptive thinking 기본 ON — 60초 타임아웃/비용 캡 보호
         messages: [{ role: 'user', content: user }],
       })
       if (response.stop_reason === 'refusal') throw new Error('refused')
