@@ -63,6 +63,7 @@ export async function POST() {
         messages: [{ role: 'user', content: user }],
       })
       if (response.stop_reason === 'refusal') throw new Error('refused')
+      if (response.stop_reason === 'max_tokens') throw new Error('truncated')
       // filter만으로는 union이 좁혀지지 않아 map에서 TS 에러 — 조건부 map으로 처리
       const text = response.content
         .map((b) => (b.type === 'text' ? b.text : ''))
