@@ -20,6 +20,7 @@ function UploadForm() {
   const [durationMin, setDurationMin] = useState('')
   const [distanceKm, setDistanceKm] = useState('')
   const [calories, setCalories] = useState('')
+  const [journal, setJournal] = useState('')
   const [ocrRunning, setOcrRunning] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -44,6 +45,7 @@ function UploadForm() {
     setDurationMin('')
     setDistanceKm('')
     setCalories('')
+    setJournal('')
     setOcrRunning(true)
     try {
       // 중요: 압축·변환 전에 EXIF를 읽는다 (둘 다 EXIF가 사라짐)
@@ -90,11 +92,16 @@ function UploadForm() {
     }
     try {
       // file은 handleFile에서 이미 압축된 상태 — 그대로 업로드
-      await addWorkout(file, new Date(takenAt), {
-        duration_min: toNum(durationMin),
-        distance_km: toNum(distanceKm),
-        calories: toNum(calories),
-      })
+      await addWorkout(
+        file,
+        new Date(takenAt),
+        {
+          duration_min: toNum(durationMin),
+          distance_km: toNum(distanceKm),
+          calories: toNum(calories),
+        },
+        journal
+      )
       router.push('/')
     } catch (err) {
       setError(err instanceof Error ? err.message : '저장에 실패했습니다')
@@ -185,6 +192,19 @@ function UploadForm() {
                   <span className="block text-center text-[10px] text-gray-400">kcal</span>
                 </label>
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium">
+                오늘 어떻게 뛰었나요? <span className="text-gray-400">(선택)</span>
+              </label>
+              <textarea
+                value={journal}
+                onChange={(e) => setJournal(e.target.value)}
+                placeholder="예: 300m 뛰고 200m 걷기 5번 반복"
+                rows={2}
+                className="mt-1 w-full rounded-xl border border-gray-200 p-3 text-sm"
+              />
             </div>
           </div>
         )}

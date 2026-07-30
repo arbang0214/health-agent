@@ -9,7 +9,12 @@ export type WorkoutStats = {
   calories: number | null
 }
 
-export async function addWorkout(photo: Blob, takenAt: Date, stats?: WorkoutStats): Promise<void> {
+export async function addWorkout(
+  photo: Blob,
+  takenAt: Date,
+  stats?: WorkoutStats,
+  journal?: string
+): Promise<void> {
   const supabase = createClient()
   const path = `public/${crypto.randomUUID()}.jpg`
   const { error: uploadError } = await supabase.storage
@@ -19,6 +24,8 @@ export async function addWorkout(photo: Blob, takenAt: Date, stats?: WorkoutStat
 
   const row: Record<string, unknown> = { taken_at: takenAt.toISOString(), photo_path: path }
   if (stats) Object.assign(row, stats, { analyzed_at: new Date().toISOString() })
+  const trimmed = journal?.trim()
+  if (trimmed) row.journal = trimmed
 
   const { error: insertError } = await supabase.from('workouts').insert(row)
   if (insertError) {
