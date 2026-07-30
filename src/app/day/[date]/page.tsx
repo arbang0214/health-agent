@@ -119,12 +119,14 @@ function WorkoutCard({
   const [durationMin, setDurationMin] = useState('')
   const [distanceKm, setDistanceKm] = useState('')
   const [calories, setCalories] = useState('')
+  const [journal, setJournal] = useState('')
   const [saving, setSaving] = useState(false)
 
   function startEditing() {
     setDurationMin(workout.duration_min !== null ? String(workout.duration_min) : '')
     setDistanceKm(workout.distance_km !== null ? String(workout.distance_km) : '')
     setCalories(workout.calories !== null ? String(workout.calories) : '')
+    setJournal(workout.journal ?? '')
     setEditing(true)
   }
 
@@ -135,11 +137,15 @@ function WorkoutCard({
       return s.trim() === '' || !Number.isFinite(n) ? null : n
     }
     try {
-      await updateWorkoutStats(workout.id, {
-        duration_min: toNum(durationMin),
-        distance_km: toNum(distanceKm),
-        calories: toNum(calories),
-      })
+      await updateWorkoutStats(
+        workout.id,
+        {
+          duration_min: toNum(durationMin),
+          distance_km: toNum(distanceKm),
+          calories: toNum(calories),
+        },
+        journal
+      )
       await onSaved()
       setEditing(false)
     } catch (err) {
@@ -203,6 +209,13 @@ function WorkoutCard({
               <span className="block text-center text-[10px] text-gray-400">kcal</span>
             </label>
           </div>
+          <textarea
+            value={journal}
+            onChange={(e) => setJournal(e.target.value)}
+            placeholder="오늘 어떻게 뛰었나요? (선택)"
+            rows={2}
+            className="w-full rounded-xl border border-gray-200 p-2 text-sm"
+          />
           <div className="flex gap-2">
             <button
               onClick={handleSave}
@@ -220,12 +233,17 @@ function WorkoutCard({
           </div>
         </div>
       ) : (
-        <div className="flex items-center justify-between px-1">
-          <span className="text-sm font-bold text-emerald-700">{statsLabel(workout)}</span>
-          <button onClick={startEditing} className="text-sm text-gray-400">
-            ✎ 수정
-          </button>
-        </div>
+        <>
+          <div className="flex items-center justify-between px-1">
+            <span className="text-sm font-bold text-emerald-700">{statsLabel(workout)}</span>
+            <button onClick={startEditing} className="text-sm text-gray-400">
+              ✎ 수정
+            </button>
+          </div>
+          {workout.journal && (
+            <p className="whitespace-pre-wrap px-1 text-sm text-gray-600">📝 {workout.journal}</p>
+          )}
+        </>
       )}
     </div>
   )

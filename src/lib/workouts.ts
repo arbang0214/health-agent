@@ -53,12 +53,15 @@ export async function deleteWorkout(w: Workout): Promise<void> {
   await supabase.storage.from(BUCKET).remove([w.photo_path])
 }
 
-export async function updateWorkoutStats(id: string, stats: WorkoutStats): Promise<void> {
+export async function updateWorkoutStats(
+  id: string,
+  stats: WorkoutStats,
+  journal?: string | null
+): Promise<void> {
   const supabase = createClient()
-  const { error } = await supabase
-    .from('workouts')
-    .update({ ...stats, analyzed_at: new Date().toISOString() })
-    .eq('id', id)
+  const row: Record<string, unknown> = { ...stats, analyzed_at: new Date().toISOString() }
+  if (journal !== undefined) row.journal = journal?.trim() ? journal.trim() : null
+  const { error } = await supabase.from('workouts').update(row).eq('id', id)
   if (error) throw new Error(`기록 수정 실패: ${error.message}`)
 }
 
