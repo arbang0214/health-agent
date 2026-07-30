@@ -1,10 +1,9 @@
 'use client'
-import { Suspense, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { extractTakenAt, fallbackTakenAt, resolveTakenAt } from '@/lib/exif'
-import { ensureDisplayable } from '@/lib/heic'
-import { compressImage } from '@/lib/image'
+import { prepareImage } from '@/lib/image'
 import { recognizeWorkout } from '@/lib/ocr'
 import { addWorkout } from '@/lib/workouts'
 
@@ -28,13 +27,20 @@ function UploadForm() {
   const router = useRouter()
   const dateParam = useSearchParams().get('date')
 
+  // preview가 바뀌거나 화면을 떠날 때 이전 objectURL 해제 (누적되면 메모리 누수)
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview)
+    }
+  }, [preview])
+
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]
     if (!f) return
     const run = ++ocrRun.current
     setError('')
-    setFile(f)
-    setPreview(URL.createObjectURL(f))
+    setFile(null)
+    setPreview('')
     setDurationMin('')
     setDistanceKm('')
     setCalories('')
@@ -46,22 +52,20 @@ function UploadForm() {
       setExifFound(exifDate !== null)
       setTakenAt(toLocalInputValue(resolveTakenAt(exifDate, fallbackTakenAt(dateParam, new Date()))))
 
-      // HEIC 등 브라우저가 못 읽는 형식은 JPEG로 변환 (실패하면 안내하고 중단)
+      // 변환(HEIC→JPEG)+압축을 선택 직후 한 번만 수행 — 이후 미리보기·OCR·업로드는
+      // 전부 압축본(≤1600px)만 쓴다. 고화소 원본을 여러 번 디코드하다 모바일에서
+      // 메모리 초과로 죽는 문제의 근본 대책.
       let usable: Blob
       try {
-        usable = await ensureDisplayable(f)
+        usable = await prepareImage(f)
       } catch (err) {
         if (run !== ocrRun.current) return
-        setFile(null)
-        setPreview('')
         setError(err instanceof Error ? err.message : '사진을 읽을 수 없어요')
         return
       }
       if (run !== ocrRun.current) return
-      if (usable !== f) {
-        setFile(usable)
-        setPreview(URL.createObjectURL(usable))
-      }
+      setFile(usable)
+      setPreview(URL.createObjectURL(usable))
 
       // OCR 자동 인식 (실패해도 수동 입력으로 진행)
       const stats = await recognizeWorkout(usable)
@@ -85,8 +89,8 @@ function UploadForm() {
       return s.trim() === '' || !Number.isFinite(n) ? null : n
     }
     try {
-      const compressed = await compressImage(file)
-      await addWorkout(compressed, new Date(takenAt), {
+      // file은 handleFile에서 이미 압축된 상태 — 그대로 업로드
+      await addWorkout(file, new Date(takenAt), {
         duration_min: toNum(durationMin),
         distance_km: toNum(distanceKm),
         calories: toNum(calories),
