@@ -120,6 +120,13 @@ export default function CalendarPage() {
           </Link>
         )}
 
+        <Link
+          href="/coach"
+          className="mb-3 block rounded-2xl bg-amber-500 p-3 text-center text-sm font-bold text-white shadow-sm"
+        >
+          🧑‍🏫 AI 코치에게 분석받기
+        </Link>
+
         {error && <p className="mb-2 rounded-2xl bg-red-50 p-3 text-sm text-red-600">{error}</p>}
 
         <div className="rounded-2xl bg-white p-3 shadow-sm">
