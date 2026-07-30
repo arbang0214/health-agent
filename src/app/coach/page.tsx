@@ -41,7 +41,7 @@ export default function CoachPage() {
     setError('')
     try {
       const res = await fetch('/api/coach', { method: 'POST' })
-      const body = await res.json()
+      const body = await res.json().catch(() => ({}))
       if (!res.ok) {
         setError(body.message ?? '분석에 실패했어요. 잠시 후 다시 시도해주세요.')
         return

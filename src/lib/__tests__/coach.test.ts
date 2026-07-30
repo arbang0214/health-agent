@@ -102,4 +102,14 @@ describe('runCoach', () => {
     await runCoach(deps)
     expect(seenUser).toContain('지난번 목표: 3.5km')
   })
+
+  it('createReport 실패 시 502를 반환한다', async () => {
+    const deps = makeDeps({
+      createReport: async () => {
+        throw new Error('db down')
+      },
+    })
+    const result = await runCoach(deps)
+    expect(result).toMatchObject({ ok: false, status: 502 })
+  })
 })

@@ -52,6 +52,15 @@ export async function runCoach(deps: CoachDeps): Promise<CoachResult> {
       message: '분석에 실패했어요. 잠시 후 다시 시도해주세요.',
     }
   }
-  const report = await deps.createReport(content)
-  return { ok: true, report }
+  try {
+    const report = await deps.createReport(content)
+    return { ok: true, report }
+  } catch {
+    console.error('coach report save failed, content:', content)
+    return {
+      ok: false,
+      status: 502,
+      message: '분석은 됐는데 저장에 실패했어요. 잠시 후 다시 시도해주세요.',
+    }
+  }
 }

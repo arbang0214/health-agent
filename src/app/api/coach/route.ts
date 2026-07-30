@@ -10,6 +10,18 @@ export const maxDuration = 60
 const EIGHT_WEEKS_MS = 56 * 24 * 3600_000
 
 export async function POST() {
+  try {
+    return await handlePost()
+  } catch (err) {
+    console.error(err)
+    return NextResponse.json(
+      { message: '서버 오류가 발생했어요. 잠시 후 다시 시도해주세요.' },
+      { status: 500 }
+    )
+  }
+}
+
+async function handlePost() {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -60,6 +72,7 @@ export async function POST() {
         system,
         betas: ['server-side-fallback-2026-07-01'],
         fallbacks: 'default', // 분류기 거부 시 자동 대체 모델 재실행
+        output_config: { effort: 'medium' }, // opus-5는 thinking 기본 ON(effort high) — 60초 타임아웃/비용 캡 보호
         messages: [{ role: 'user', content: user }],
       })
       if (response.stop_reason === 'refusal') throw new Error('refused')

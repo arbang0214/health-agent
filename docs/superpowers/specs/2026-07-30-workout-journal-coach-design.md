@@ -31,7 +31,7 @@ alter table workouts add column journal text;
 create table coach_reports (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
-  content text not null  -- 분석 리포트 마크다운 전문
+  content text not null  -- 분석 리포트 일반 텍스트 전문(이모지 섹션 제목)
 );
 ```
 
