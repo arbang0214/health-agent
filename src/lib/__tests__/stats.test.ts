@@ -11,6 +11,7 @@ function w(over: Partial<Workout>): Workout {
     distance_km: null,
     calories: null,
     analyzed_at: null,
+    journal: null,
     photo_path: 'p.jpg',
     created_at: '2026-07-01T07:00:00Z',
     ...over,
