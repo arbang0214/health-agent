@@ -79,7 +79,7 @@ export default function CalendarPage() {
         onTouchEnd={onTouchEnd}
       >
         <header className="mb-3 flex items-center justify-between">
-          <h1 className="text-lg font-extrabold text-emerald-900">🏃 런로그</h1>
+          <h1 className="text-lg font-extrabold text-emerald-900">🔥 런로그</h1>
           <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-emerald-800 shadow-sm">
             이번 달 {summary.days}회
           </span>
@@ -183,7 +183,7 @@ function DayCell({ day, workouts, inMonth }: { day: Date; workouts: Workout[]; i
       <span className={`text-xs ${isToday ? 'font-bold text-white' : 'text-gray-600'}`}>{day.getDate()}</span>
       {workouts.length > 0 && (
         <span className="relative mt-1 text-2xl leading-none">
-          🏃
+          🏃‍♀️
           {workouts.length > 1 && (
             <span className="absolute -right-2 -top-1 rounded-full bg-emerald-600 px-1 text-[10px] font-bold text-white">
               {workouts.length}
