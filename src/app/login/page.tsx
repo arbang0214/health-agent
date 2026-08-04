@@ -143,7 +143,7 @@ export default function LoginPage() {
               disabled={sending}
               className="w-full rounded-xl bg-emerald-500 py-3 font-bold text-white shadow-sm disabled:opacity-50"
             >
-              {sending ? '보내는 중…' : '로그인 링크 받기'}
+              {sending ? '보내는 중…' : '6자리 코드 받기'}
             </button>
             <p className="mt-3 text-center text-xs leading-relaxed text-gray-400">
               비밀번호 없이 메일로 받은 코드로 로그인해요.
