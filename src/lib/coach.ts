@@ -1,7 +1,8 @@
 import { buildCoachPrompt } from '@/lib/coach-prompt'
 import type { CoachReport, Workout } from '@/lib/types'
 
-export const DAILY_LIMIT = 5
+// 사용자별 1일 1회 — countReportsToday가 RLS로 사용자 스코프이므로 이 상수만으로 사용자별 한도가 된다
+export const DAILY_LIMIT = 1
 
 // KST(UTC+9) 기준 '오늘 0시'를 UTC ISO 문자열로.
 // coach_reports.created_at >= 이 값 이면 "오늘 생성분"
@@ -30,7 +31,7 @@ export async function runCoach(deps: CoachDeps): Promise<CoachResult> {
     return {
       ok: false,
       status: 429,
-      message: '오늘 분석 횟수를 다 썼어요. 내일 다시 만나요!',
+      message: '오늘 분석은 이미 받았어요. 내일 다시 만나요!',
     }
   }
   const workouts = await deps.listRecentWorkouts()

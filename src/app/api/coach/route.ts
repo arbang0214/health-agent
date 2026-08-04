@@ -9,9 +9,9 @@ export const maxDuration = 60
 
 const EIGHT_WEEKS_MS = 56 * 24 * 3600_000
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
-    return await handlePost()
+    return await handlePost(req)
   } catch (err) {
     console.error(err)
     return NextResponse.json(
@@ -21,11 +21,17 @@ export async function POST() {
   }
 }
 
-async function handlePost() {
+async function handlePost(req: Request) {
+  // 호출자의 토큰으로 supabase 클라이언트를 만들어 모든 조회·저장에 사용자 RLS가 적용되게 한다
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { global: { headers: { Authorization: req.headers.get('authorization') ?? '' } } }
   )
+  const { data: userData } = await supabase.auth.getUser()
+  if (!userData.user) {
+    return NextResponse.json({ message: '로그인이 필요해요.' }, { status: 401 })
+  }
   const anthropic = new Anthropic() // ANTHROPIC_API_KEY 환경변수 사용
 
   const result = await runCoach({

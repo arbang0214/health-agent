@@ -57,8 +57,8 @@ describe('kstDayStartUtcIso', () => {
 })
 
 describe('runCoach', () => {
-  it('오늘 5회 이상이면 429, 생성/호출 안 함', async () => {
-    const deps = makeDeps({ countReportsToday: async () => 5 })
+  it('오늘 한도(사용자별 1회) 이상이면 429, 생성/호출 안 함', async () => {
+    const deps = makeDeps({ countReportsToday: async () => 1 })
     const result = await runCoach(deps)
     expect(result).toEqual({
       ok: false,

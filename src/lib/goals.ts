@@ -1,3 +1,4 @@
+import { authHeaders } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/client'
 import type { Goal } from '@/lib/types'
 
@@ -22,7 +23,7 @@ export async function detectGoalChangeFromJournal(journal: string | null | undef
   try {
     await fetch('/api/goal/detect', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
       body: JSON.stringify({ journal: trimmed }),
     })
   } catch {

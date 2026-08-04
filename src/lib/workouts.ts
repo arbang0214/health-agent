@@ -16,7 +16,10 @@ export async function addWorkout(
   journal?: string
 ): Promise<void> {
   const supabase = createClient()
-  const path = `public/${crypto.randomUUID()}.jpg`
+  // 사진은 사용자 폴더에 저장 — storage RLS가 폴더 첫 세그먼트로 접근을 제한한다
+  const { data: userData } = await supabase.auth.getUser()
+  if (!userData.user) throw new Error('로그인이 필요합니다')
+  const path = `${userData.user.id}/${crypto.randomUUID()}.jpg`
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
     .upload(path, photo, { contentType: 'image/jpeg' })

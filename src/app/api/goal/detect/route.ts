@@ -19,10 +19,14 @@ export async function POST(req: Request) {
     const journal = typeof body.journal === 'string' ? body.journal.trim() : ''
     if (!journal) return NextResponse.json({ changed: false })
 
+    // 호출자의 토큰으로 클라이언트 생성 — 목표 조회·갱신이 그 사용자 것으로만 이뤄진다 (RLS)
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { global: { headers: { Authorization: req.headers.get('authorization') ?? '' } } }
     )
+    const { data: userData } = await supabase.auth.getUser()
+    if (!userData.user) return NextResponse.json({ changed: false })
     const { data: rows, error: goalError } = await supabase
       .from('goals')
       .select('content')

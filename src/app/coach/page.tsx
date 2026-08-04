@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { authHeaders } from '@/lib/auth'
 import { listCoachReports } from '@/lib/coach-reports'
 import type { CoachReport } from '@/lib/types'
 
@@ -40,7 +41,7 @@ export default function CoachPage() {
     setAnalyzing(true)
     setError('')
     try {
-      const res = await fetch('/api/coach', { method: 'POST' })
+      const res = await fetch('/api/coach', { method: 'POST', headers: await authHeaders() })
       const body = await res.json().catch(() => ({}))
       if (!res.ok) {
         setError(body.message ?? '분석에 실패했어요. 잠시 후 다시 시도해주세요.')

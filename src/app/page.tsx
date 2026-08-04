@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { addMonths, endOfMonth, endOfWeek, format, isSameMonth, startOfMonth, startOfWeek } from 'date-fns'
+import { signOut } from '@/lib/auth'
 import { getMonthGrid, groupByDateKey, toDateKey } from '@/lib/calendar'
 import { getCurrentGoal, setGoal } from '@/lib/goals'
 import { summarizeMonth } from '@/lib/stats'
@@ -94,9 +95,18 @@ export default function CalendarPage() {
       >
         <header className="mb-3 flex items-center justify-between">
           <h1 className="text-lg font-extrabold text-emerald-900">🔥 런로그</h1>
-          <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-emerald-800 shadow-sm">
-            이번 달 {summary.days}회
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-emerald-800 shadow-sm">
+              이번 달 {summary.days}회
+            </span>
+            <button
+              onClick={() => signOut()}
+              className="rounded-full bg-white px-2.5 py-1 text-xs text-gray-400 shadow-sm"
+              title="로그아웃"
+            >
+              ⎋
+            </button>
+          </div>
         </header>
 
         <GoalCard goal={goal} onSaved={setGoalState} />
