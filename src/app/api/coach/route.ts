@@ -47,6 +47,15 @@ async function handlePost() {
       if (error) throw new Error(error.message)
       return (data ?? []) as Workout[]
     },
+    async getCurrentGoal() {
+      const { data, error } = await supabase
+        .from('goals')
+        .select('content')
+        .order('created_at', { ascending: false })
+        .limit(1)
+      if (error) throw new Error(error.message)
+      return data?.[0]?.content ?? null
+    },
     async getLastReportContent() {
       const { data, error } = await supabase
         .from('coach_reports')

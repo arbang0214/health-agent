@@ -32,6 +32,7 @@ function makeDeps(overrides: Partial<CoachDeps> = {}): CoachDeps & {
     countReportsToday: async () => 0,
     listRecentWorkouts: async () => [makeWorkout()],
     getLastReportContent: async () => null,
+    getCurrentGoal: async () => null,
     createReport: async (content: string) => {
       created.push(content)
       return savedReport
@@ -101,6 +102,29 @@ describe('runCoach', () => {
     })
     await runCoach(deps)
     expect(seenUser).toContain('지난번 목표: 3.5km')
+  })
+
+  it('설정된 목표를 프롬프트에 반영한다 (generateAnalysis 인자로 전달됨)', async () => {
+    let seenUser = ''
+    const deps = makeDeps({
+      getCurrentGoal: async () => '3km를 걷지 않고 완주하기',
+      generateAnalysis: async (_system, user) => {
+        seenUser = user
+        return '📊 분석'
+      },
+    })
+    await runCoach(deps)
+    expect(seenUser).toContain('사용자 설정 목표: 3km를 걷지 않고 완주하기')
+  })
+
+  it('목표 조회 실패는 코칭을 막지 않는다 (목표 없이 진행)', async () => {
+    const deps = makeDeps({
+      getCurrentGoal: async () => {
+        throw new Error('db down')
+      },
+    })
+    const result = await runCoach(deps)
+    expect(result).toEqual({ ok: true, report: savedReport })
   })
 
   it('createReport 실패 시 502를 반환한다', async () => {

@@ -16,6 +16,7 @@ export type CoachDeps = {
   countReportsToday(): Promise<number>
   listRecentWorkouts(): Promise<Workout[]>
   getLastReportContent(): Promise<string | null>
+  getCurrentGoal(): Promise<string | null>
   createReport(content: string): Promise<CoachReport>
   generateAnalysis(system: string, user: string): Promise<string>
 }
@@ -41,7 +42,9 @@ export async function runCoach(deps: CoachDeps): Promise<CoachResult> {
     }
   }
   const lastReport = await deps.getLastReportContent()
-  const { system, user } = buildCoachPrompt(workouts, lastReport)
+  // 목표 조회 실패는 코칭을 막지 않는다 — 목표 없이 진행 (우아한 성능 저하)
+  const goal = await deps.getCurrentGoal().catch(() => null)
+  const { system, user } = buildCoachPrompt(workouts, lastReport, goal)
   let content: string
   try {
     content = await deps.generateAnalysis(system, user)

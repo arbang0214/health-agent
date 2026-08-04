@@ -1,6 +1,7 @@
 'use client'
 import { use, useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { detectGoalChangeFromJournal } from '@/lib/goals'
 import { deleteWorkout, getPhotoUrl, listWorkouts, updateWorkoutStats } from '@/lib/workouts'
 import type { Workout } from '@/lib/types'
 
@@ -146,6 +147,8 @@ function WorkoutCard({
         },
         journal
       )
+      // 일지에 목표 변경 선언이 있으면 goals 갱신 (실패해도 수정 흐름과 무관)
+      await detectGoalChangeFromJournal(journal)
       await onSaved()
       setEditing(false)
     } catch (err) {

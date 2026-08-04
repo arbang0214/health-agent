@@ -3,9 +3,10 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { addMonths, endOfMonth, endOfWeek, format, isSameMonth, startOfMonth, startOfWeek } from 'date-fns'
 import { getMonthGrid, groupByDateKey, toDateKey } from '@/lib/calendar'
+import { getCurrentGoal, setGoal } from '@/lib/goals'
 import { summarizeMonth } from '@/lib/stats'
 import { listUnanalyzed, listWorkouts } from '@/lib/workouts'
-import type { Workout } from '@/lib/types'
+import type { Goal, Workout } from '@/lib/types'
 
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -19,8 +20,21 @@ export default function CalendarPage() {
   const [anchor, setAnchor] = useState(() => new Date())
   const [byDay, setByDay] = useState<Map<string, Workout[]>>(new Map())
   const [unanalyzedCount, setUnanalyzedCount] = useState(0)
+  const [goal, setGoalState] = useState<Goal | null>(null)
   const [error, setError] = useState('')
   const touchStart = useRef<{ x: number; y: number } | null>(null)
+
+  useEffect(() => {
+    let stale = false
+    getCurrentGoal()
+      .then((g) => {
+        if (!stale) setGoalState(g)
+      })
+      .catch(() => {}) // 목표 조회 실패는 캘린더 사용을 막지 않음
+    return () => {
+      stale = true
+    }
+  }, [])
 
   useEffect(() => {
     let stale = false
@@ -84,6 +98,8 @@ export default function CalendarPage() {
             이번 달 {summary.days}회
           </span>
         </header>
+
+        <GoalCard goal={goal} onSaved={setGoalState} />
 
         <div className="mb-3 flex items-center justify-between">
           <button onClick={() => setAnchor((a) => addMonths(a, -1))} className="p-2 text-emerald-800">
@@ -158,6 +174,91 @@ export default function CalendarPage() {
           ＋ 기록하기
         </Link>
       </main>
+    </div>
+  )
+}
+
+// 화면 최상단 목표 영역: 미설정 → 설정 유도, 설정됨 → 목표 표시 + 수정 버튼
+function GoalCard({ goal, onSaved }: { goal: Goal | null; onSaved: (g: Goal) => void }) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  async function save() {
+    if (!draft.trim() || saving) return
+    setSaving(true)
+    setError('')
+    try {
+      const saved = await setGoal(draft)
+      onSaved(saved)
+      setEditing(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '목표 저장 실패')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (editing) {
+    return (
+      <div className="mb-3 rounded-2xl bg-white p-3 shadow-sm">
+        <div className="flex gap-2">
+          <input
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') save()
+            }}
+            placeholder="예: 3km를 걷지 않고 완주하기"
+            className="min-w-0 flex-1 rounded-xl border border-emerald-200 px-3 py-2 text-sm outline-none focus:border-emerald-500"
+          />
+          <button
+            onClick={save}
+            disabled={saving}
+            className="rounded-xl bg-emerald-500 px-3 py-2 text-sm font-bold text-white disabled:opacity-50"
+          >
+            {saving ? '저장 중' : '저장'}
+          </button>
+          <button onClick={() => setEditing(false)} className="px-1 text-sm text-gray-400">
+            취소
+          </button>
+        </div>
+        {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
+      </div>
+    )
+  }
+
+  if (!goal) {
+    return (
+      <button
+        onClick={() => {
+          setDraft('')
+          setEditing(true)
+        }}
+        className="mb-3 block w-full rounded-2xl border-2 border-dashed border-emerald-300 bg-white/60 p-3 text-center text-sm font-bold text-emerald-700"
+      >
+        🎯 목표를 설정하고 맞춤 코칭 받기
+      </button>
+    )
+  }
+
+  return (
+    <div className="mb-3 flex items-center gap-2 rounded-2xl bg-white p-3 shadow-sm">
+      <span className="text-lg">🎯</span>
+      <span className="min-w-0 flex-1 truncate text-sm font-bold text-emerald-900">
+        {goal.content}
+      </span>
+      <button
+        onClick={() => {
+          setDraft(goal.content)
+          setEditing(true)
+        }}
+        className="shrink-0 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700"
+      >
+        수정
+      </button>
     </div>
   )
 }

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { extractTakenAt, fallbackTakenAt, resolveTakenAt } from '@/lib/exif'
 import { prepareImage } from '@/lib/image'
 import { recognizeWorkout } from '@/lib/ocr'
+import { detectGoalChangeFromJournal } from '@/lib/goals'
 import { addWorkout } from '@/lib/workouts'
 
 function toLocalInputValue(d: Date): string {
@@ -102,6 +103,8 @@ function UploadForm() {
         },
         journal
       )
+      // 일지에 목표 변경 선언이 있으면 goals 갱신 (실패해도 저장 흐름과 무관)
+      await detectGoalChangeFromJournal(journal)
       router.push('/')
     } catch (err) {
       setError(err instanceof Error ? err.message : '저장에 실패했습니다')

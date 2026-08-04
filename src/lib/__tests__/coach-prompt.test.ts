@@ -61,4 +61,23 @@ describe('buildCoachPrompt', () => {
     expect(system).toContain('다음 목표치')
     expect(system).toContain('추천 운동 방법')
   })
+
+  it('목표가 있으면 user 프롬프트 맨 앞에 목표를 넣고 목표 중심 지시로 끝난다', () => {
+    const { user } = buildCoachPrompt([makeWorkout()], null, '3km를 걷지 않고 완주하기')
+    expect(user.startsWith('사용자 설정 목표: 3km를 걷지 않고 완주하기')).toBe(true)
+    expect(user).toContain('목표 달성을 중심으로 코칭해줘')
+  })
+
+  it('목표가 없으면 목표 라벨을 넣지 않는다 (기존 동작 유지)', () => {
+    const { user } = buildCoachPrompt([makeWorkout()], null)
+    expect(user).not.toContain('사용자 설정 목표:')
+    expect(user).toContain('위 기록을 분석해서 코칭해줘.')
+  })
+
+  it('목표 텍스트는 system이 아니라 user에 들어간다 (system은 고정 유지)', () => {
+    const withGoal = buildCoachPrompt([makeWorkout()], null, '5km 완주')
+    const withoutGoal = buildCoachPrompt([makeWorkout()], null)
+    expect(withGoal.system).toBe(withoutGoal.system)
+    expect(withGoal.system).not.toContain('5km 완주')
+  })
 })
