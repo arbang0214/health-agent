@@ -49,12 +49,13 @@ export default function LoginPage() {
     setError('')
     try {
       const supabase = createClient()
+      // 로그인은 6자리 코드 전용 — 링크 방식은 메일 앱이 다른 브라우저로 열면
+      // 실패해서 사용자가 에러로 인식하므로 쓰지 않는다 (메일 템플릿도 코드만 노출)
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: trimmed,
         options: {
           // 가입 개방 안 함 — 사전 등록된 이메일만 로그인 가능 (사용자 추가는 Supabase 대시보드)
           shouldCreateUser: false,
-          emailRedirectTo: window.location.origin,
         },
       })
       if (otpError) {
@@ -108,9 +109,6 @@ export default function LoginPage() {
                 {verifying ? '확인 중…' : '로그인'}
               </button>
             </form>
-            <p className="mt-3 text-xs text-gray-400">
-              메일의 링크를 이 브라우저에서 열어도 로그인돼요.
-            </p>
             {error && (
               <p className="mt-3 rounded-xl bg-red-50 p-2.5 text-xs text-red-600">{error}</p>
             )}

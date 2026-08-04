@@ -15,14 +15,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const supabase = createClient()
-    // 매직링크로 돌아온 직후에는 URL의 code 교환이 끝나야 세션이 생긴다 —
-    // onAuthStateChange가 SIGNED_IN을 쏠 때까지 loading을 유지해 /login으로 튕기지 않게 한다.
-    const hasAuthCode =
-      typeof window !== 'undefined' &&
-      (window.location.search.includes('code=') || window.location.hash.includes('access_token'))
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setStatus('authed')
-      else if (!hasAuthCode) setStatus('anon')
+      setStatus(data.session ? 'authed' : 'anon')
     })
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       setStatus(session ? 'authed' : 'anon')
